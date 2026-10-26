@@ -10,6 +10,34 @@
 LunarLander 的机制研究与消融研究；本文不主张结果已经构成跨模型、跨环境的普遍规律。
 完整内容见[技术报告](paper/main.pdf)。
 
+## 从哪里开始阅读
+
+建议依次查看：
+
+1. [`inner_train.py`](shinsa_evolve/core/inner_train.py)：固定 policy trainer、候选控制的奖励／评估计划，以及训练自报分数。
+2. [`audit.py`](shinsa_evolve/core/audit.py)：使用新种子和原始奖励评价训练后的参数；本模块不调用候选 recipe。
+3. [`orchestrate.py`](shinsa_evolve/core/orchestrate.py)：父代选择、变异、训练、audit 记录，以及 fixed-raw 训练适配器。
+4. [`analyze_replications.py`](scripts/analyze_replications.py) 和 [`analyze_fixed_raw_replications.py`](scripts/analyze_fixed_raw_replications.py)：重复实验的运行级比较。
+
+只查看已有结果时，不需要 LLM 账户、训练或 ML 依赖。请按英文 README 中的
+[下载、校验、恢复与分析步骤](README.md#restore-and-analyze-the-released-archives)操作；该段是命令的统一来源。
+运行归档放在 [v0.1.0 Release](https://github.com/ganqindong/shinsa-evolve/releases/tag/v0.1.0) 的独立附件中，
+不会随 `git clone` 下载。先校验两个数据包，再恢复到脚本要求的 `runs/` 目录；不要覆盖已有运行。
+重新计算的摘要输出到 `analysis_out/`，保留 `evidence/` 中的参考结果。
+
+安装依赖后的无 LLM smoke test 用于检查训练／audit 流程，不等于复现完整论文实验。
+
+## 公开成果与文稿版本
+
+公开报告为 [`paper/main.pdf`](paper/main.pdf)，题名为
+*When Self-Reported Fitness Becomes the Target: Independent Audits in LLM-Driven Recipe Evolution*。
+不能默认本仓库及公开报告与另行提交的投稿稿完全一致。
+
+公开成果版本为 GitHub Release `v0.1.0`：v3／v4 数据包包含 LunarLander 正式重复实验；
+historical 数据包包含更早的 pilot，不能混入正式结果。Python 包元数据仍为 `0.0.1`，
+它与 GitHub Release 标签是不同的版本字段。需要固定代码版本时，请使用 commit 永久链接或 release tag，
+而非持续更新的 `main`。本人贡献与工具使用范围见下方“作者身份与 AI 辅助”。
+
 ## 独立审计模式适用于哪些场景
 
 ShinsaEvolve 在候选训练和外循环选择之间加入由 harness 控制的独立审计 gate。它使用固定

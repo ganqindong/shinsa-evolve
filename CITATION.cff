@@ -6,9 +6,9 @@ authors:
   - family-names: Gan
     given-names: Qindong
     email: ganqindong@fuji.waseda.jp
-version: 0.0.1
+version: 0.1.0
 license: Apache-2.0
-repository-code: "https://github.com/Frankiegan912/shinsa-evolve"
+repository-code: "https://github.com/ganqindong/shinsa-evolve"
 abstract: >-
   A reproducible research system and case study comparing candidate-reported training scores
   with independent fresh-seed raw-reward audits in LLM-driven reinforcement-learning recipe

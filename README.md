@@ -12,6 +12,40 @@ CMA-ES).
 evidence is a LunarLander mechanism-and-ablation case study, not a claim of a general law across
 models or environments. Read the [technical report](paper/main.pdf).
 
+## Start here
+
+For a quick code review, follow this path:
+
+1. [`inner_train.py`](shinsa_evolve/core/inner_train.py): the fixed policy trainer,
+   candidate-controlled reward/schedule, and reported training fitness.
+2. [`audit.py`](shinsa_evolve/core/audit.py): fresh audit seeds and raw-reward evaluation
+   of trained parameters; candidate recipe code is not called by this module.
+3. [`orchestrate.py`](shinsa_evolve/core/orchestrate.py): parent selection, mutation,
+   training, audit recording, and the fixed-raw training adapter.
+4. [`analyze_replications.py`](scripts/analyze_replications.py) and
+   [`analyze_fixed_raw_replications.py`](scripts/analyze_fixed_raw_replications.py):
+   run-level comparisons for the replicated study.
+
+To inspect existing results without training, an LLM account, or ML dependencies, follow
+[Restore and analyze the released archives](#restore-and-analyze-the-released-archives).
+To exercise the training/audit pipeline on a small budget, install the project and use the
+[no-LLM smoke test](#smoke-test-no-llm-calls). A smoke run checks the pipeline; it does not
+reproduce the full paper experiment.
+
+## Artifact and manuscript versions
+
+The public report is [`paper/main.pdf`](paper/main.pdf), titled *When Self-Reported Fitness
+Becomes the Target: Independent Audits in LLM-Driven Recipe Evolution*. This repository and
+its public report should not be assumed to be identical to a separately submitted manuscript.
+
+The published artifact release is [v0.1.0](https://github.com/ganqindong/shinsa-evolve/releases/tag/v0.1.0).
+Its v3 and v4 bundles contain the replicated LunarLander evidence; the separate historical
+bundle contains earlier pilots, which must not be pooled with those results. The Python package
+metadata still uses `0.0.1`; that package version is distinct from the GitHub release tag.
+For a fixed code reference, use a commit permalink or the release tag rather than the moving
+`main` branch. The [authorship and AI-assistance statement](#authorship-and-ai-assistance)
+describes the author's role and use of coding tools.
+
 ## Where the audit pattern applies
 
 ShinsaEvolve places a harness-owned audit gate between candidate training and outer-loop selection.
@@ -79,6 +113,64 @@ runs; it is not a population convergence-rate estimate.
 
 This is a clean-room, from-scratch implementation; it contains no code, prompts, data, or
 text from any prior private implementation.
+
+## Restore and analyze the released archives
+
+Use a fresh checkout and run the following commands from its root. The archives are separate
+Release assets, not files included by `git clone`. Python 3.11 is recommended for the analysis
+commands below; they use only the standard library and do not execute generated recipes.
+Downloading the assets requires network access; analysis after download is offline.
+
+Download both replicated-data bundles and verify their published SHA-256 checksums:
+
+```bash
+(
+set -eu
+mkdir -p dist
+release_base=https://github.com/ganqindong/shinsa-evolve/releases/download/v0.1.0
+for bundle in shinsa-evolve-protocol-v3-lunar-v1 shinsa-evolve-protocol-v4-fixed-raw-v1; do
+  curl --fail --location "$release_base/$bundle.tar.gz" -o "dist/$bundle.tar.gz"
+  curl --fail --location "$release_base/$bundle.tar.gz.sha256" -o "dist/$bundle.tar.gz.sha256"
+  (cd dist && shasum -a 256 -c "$bundle.tar.gz.sha256")
+done
+)
+```
+
+Proceed only if both checksum checks report `OK`. On Linux, `sha256sum -c` can replace
+`shasum -a 256 -c`. Extract into `dist/`, then restore the directory layout expected by the
+existing analysis and replay scripts. These commands refuse to merge with existing run paths;
+use a fresh checkout if either destination already exists.
+
+```bash
+tar -xzf dist/shinsa-evolve-protocol-v3-lunar-v1.tar.gz -C dist
+tar -xzf dist/shinsa-evolve-protocol-v4-fixed-raw-v1.tar.gz -C dist
+mkdir -p runs/protocol_v3_codex
+test ! -e runs/protocol_v3_codex/lunar_replications && \
+  cp -R dist/shinsa-evolve-protocol-v3-lunar-v1/runs runs/protocol_v3_codex/lunar_replications
+test ! -e runs/protocol_v4_fixed_raw && \
+  cp -R dist/shinsa-evolve-protocol-v4-fixed-raw-v1/runs runs/protocol_v4_fixed_raw
+```
+
+Recompute summaries into the ignored `analysis_out/` directory, preserving the committed
+reference summaries:
+
+```bash
+python3.11 scripts/analyze_replications.py \
+  --runs-root runs/protocol_v3_codex/lunar_replications \
+  --output analysis_out/protocol_v3_lunar_summary.json
+python3.11 scripts/analyze_fixed_raw_replications.py \
+  --runs-root runs/protocol_v4_fixed_raw \
+  --output analysis_out/protocol_v4_fixed_raw_summary.json
+```
+
+Each summary covers six outer-loop runs with 15 completed candidates each. Compare its
+`groups` with the matching JSON under `evidence/`; the v3 claimed-selection mean regret is
+about `710.4`, and the v4 value is about `110.7`. These are descriptive results from three
+outer runs per selection mode, not a generalization guarantee.
+
+After installing the ML/environment dependencies below, the restored v3 archives also support
+`python scripts/render_lunar_demo.py` and `python scripts/render_lunar_comparison.py`.
+Those commands replay archived policies; they do not retrain them or call an LLM.
 
 ## Install
 
